@@ -25,10 +25,14 @@ import {
 import {
   User,
   Feature,
+  Car,
   getUser,
+  getCar,
+  getCars,
   getFeature,
   getFeatures,
-  addFeature
+  addFeature,
+  updateCar
 } from './database';
 
 
@@ -45,6 +49,8 @@ const { nodeInterface, nodeField } = nodeDefinitions(
       return getUser(id);
     } else if (type === 'Feature') {
       return getFeature(id);
+    } else if (type === 'Car') {
+      return getCar(id);
     }
     return null;
   },
@@ -53,6 +59,8 @@ const { nodeInterface, nodeField } = nodeDefinitions(
       return userType;
     } else if (obj instanceof Feature) {
       return featureType;
+    } else if (obj instanceof Car) {
+      return carType;
     }
     return null;
   }
@@ -81,6 +89,31 @@ const userType = new GraphQLObjectType({
       type: GraphQLString,
       description: 'User\'s website'
     }
+  }),
+  interfaces: [nodeInterface]
+});
+
+const carType = new GraphQLObjectType({
+  name: 'Car',
+  description: 'A car',
+  fields: () => ({
+    id: globalIdField('Car'),
+    year: {
+      type: GraphQLInt,
+      description: "Car's year"
+    },
+    color: {
+      type: GraphQLString,
+      description: "Car's color"
+    },
+    model: {
+      type: GraphQLString,
+      description: "Car's model"
+    },
+    make: {
+      type: GraphQLString,
+      description: "Car's make"
+    },
   }),
   interfaces: [nodeInterface]
 });
@@ -140,20 +173,86 @@ const addFeatureMutation = mutationWithClientMutationId({
   mutateAndGetPayload: ({ name, description, url }) => addFeature(name, description, url)
 });
 
+const updateCarMutation = mutationWithClientMutationId({
+  name: 'UpdateCar',
+  inputFields: {
+    id: { type: new GraphQLNonNull(GraphQLID) },
+    make: { type: new GraphQLNonNull(GraphQLString) },
+    model: { type: new GraphQLNonNull(GraphQLString) },
+    year: { type: GraphQLInt },
+    color: { type: new GraphQLNonNull(GraphQLString) },
+  },
+  outputFields: {
+    car: {
+      type: carType,
+      resolve: (src, args, ctx) => src
+    }
+  },
+
+  mutateAndGetPayload: (args) => {
+    const { _, id } = fromGlobalId(args.id);
+    return updateCar(id, {
+      make: args.make,
+      model: args.model,
+      year: args.year,
+      color: args.color
+    });
+  }
+});
+
+
+const rootType = new GraphQLObjectType({
+  name: 'Root',
+  fields: () => ({
+    cars: {
+      type: new GraphQLList(carType),
+      args: {
+        limit: {
+          name: 'limit',
+          type: new GraphQLNonNull(GraphQLInt)
+        },
+        offset: {
+          name: 'offset',
+          type: new GraphQLNonNull(GraphQLInt)
+        }
+      },
+      resolve: (src, args, ctx) => {
+        const cars = getCars().slice(args.offset);
+        return Array.from({ length: args.limit }, (v, k) => cars[k]);
+      }
+    }
+  })
+});
 
 /**
  * This is the type that will be the root of our query,
  * and the entry point into our schema.
  */
+const rootObject = { id: 'root' };
+
 const queryType = new GraphQLObjectType({
   name: 'Query',
   fields: () => ({
     node: nodeField,
     // Add your own root fields here
+    root: {
+      type: rootType,
+      resolve: () => rootObject
+    },
     viewer: {
       type: userType,
       resolve: () => getUser('1')
-    }
+    },
+    car: {
+      type: carType,
+      args: {
+        id: {
+          name: 'id',
+          type: new GraphQLNonNull(GraphQLString)
+        }
+      },
+      resolve: (src, args, ctx) => getCar(args.id)
+    },
   })
 });
 
@@ -164,7 +263,8 @@ const queryType = new GraphQLObjectType({
 const mutationType = new GraphQLObjectType({
   name: 'Mutation',
   fields: () => ({
-    addFeature: addFeatureMutation
+    addFeature: addFeatureMutation,
+    updateCar: updateCarMutation
     // Add your own mutations here
   })
 });

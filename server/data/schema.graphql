@@ -11,6 +11,24 @@ type AddFeaturePayload {
   clientMutationId: String
 }
 
+# A car
+type Car implements Node {
+  # The ID of an object
+  id: ID!
+
+  # Car's year
+  year: Int
+
+  # Car's color
+  color: String
+
+  # Car's model
+  model: String
+
+  # Car's make
+  make: String
+}
+
 # Feature integrated in our starter kit
 type Feature implements Node {
   # The ID of an object
@@ -46,6 +64,7 @@ type FeatureEdge {
 
 type Mutation {
   addFeature(input: AddFeatureInput!): AddFeaturePayload
+  updateCar(input: UpdateCarInput!): UpdateCarPayload
 }
 
 # An object with an ID
@@ -75,7 +94,27 @@ type Query {
     # The ID of an object
     id: ID!
   ): Node
+  root: Root
   viewer: User
+  car(id: String!): Car
+}
+
+type Root {
+  cars(limit: Int!, offset: Int!): [Car]
+}
+
+input UpdateCarInput {
+  id: ID!
+  make: String!
+  model: String!
+  year: Int
+  color: String!
+  clientMutationId: String
+}
+
+type UpdateCarPayload {
+  car: Car
+  clientMutationId: String
 }
 
 # A person who uses our app

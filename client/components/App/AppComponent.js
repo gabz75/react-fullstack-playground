@@ -24,6 +24,7 @@ export default class App extends React.Component {
         <div className={styles.content}>
           {this.props.children}
         </div>
+
         <Footer viewer={this.props.viewer} />
       </div>
     );

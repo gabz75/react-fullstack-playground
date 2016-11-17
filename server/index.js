@@ -30,7 +30,9 @@ if (config.env === 'development') {
       colors: true
     },
     hot: true,
-    historyApiFallback: true
+    historyApiFallback: true,
+    quiet: false,
+    noInfo: false
   });
 
   // Serve static resources
